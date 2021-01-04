@@ -20,57 +20,73 @@ struct ContentView: View {
     // @State var coordinates: (x: Int, y: Int) = (0,0)
     @ObservedObject var UserData: Main = Main()
     @State var losing = false
-    var body: some View {
-        VStack{
-            ZStack{
-                BackgroundGrid()
-                    .gesture(
-                        DragGesture()
-                            .onEnded({position in
-                                let direction = position.translation
-                                withAnimation(.spring()){
-                                    if abs(direction.width) < abs(direction.height){
-                                        direction.height<0 ?
-                                            self.UserData.moveAndCombine(in: .up) :
-                                            self.UserData.moveAndCombine(in: .down)
-                                    }
-                                    else{
-                                        direction.width<0 ?
-                                        self.UserData.moveAndCombine(in: .left) :
-                                        self.UserData.moveAndCombine(in: .right)
-                                    }
-                                    if !self.UserData.addNewCard(){
-                                        self.losing = true
-                                    }
-                                }
-                            })
-                    )
-
-                ForEach(self.UserData.Cards){ item in
-                    if !item.deleted {
-                        SingleCard(card :item)
-                            .environmentObject(self.UserData)
-                            .animation(.spring())
-                            .transition(.opacity)
-                    }
+    
+    var SwipGesture: some Gesture {
+        DragGesture()
+            .onEnded({position in
+                let direction = position.translation
+                withAnimation(.spring()){
+                if abs(direction.width) < abs(direction.height){
+                   direction.height<0 ? self.UserData.moveAndCombine(in: .up) :
+                            self.UserData.moveAndCombine(in: .down)
                 }
-//                // 调试
-//                Image(systemName: "pencil")
-//                .resizable()
-//                    .onTapGesture {
-//                        self.UserData.moveAndCombine(in: .up)
-//                }
+                else{
+                     direction.width<0 ? self.UserData.moveAndCombine(in: .left) : self.UserData.moveAndCombine(in: .right)
+                }
+                if !self.UserData.addNewCard(){
+                        self.losing = true
+                }
             }
-        }
-        .frame(width: min(maxWidth, maxHeight)*0.8, height: min(maxWidth, maxHeight))
-        .alert(isPresented: self.$losing, content: {
-            Alert(title: Text("你输了") , message: Text("重新开始?"), dismissButton:
-                Alert.Button.cancel({
+      })
+    }
+    
+    var body: some View {
+        ZStack{
+             VStack{
+                    ZStack{
+                            BackgroundGrid()
+                                .gesture(self.SwipGesture)
+
+                            ForEach(self.UserData.Cards){ item in
+                                if !item.deleted {
+                                    SingleCard(card :item)
+                                        .environmentObject(self.UserData)
+                                        .animation(.spring())
+                                        .transition(.opacity)
+                                        .gesture(self.SwipGesture)
+                                }
+                            }
+                            
+                           
+            //                // 调试
+            //                Image(systemName: "pencil")
+            //                .resizable()
+            //                    .onTapGesture {
+            //                        self.UserData.moveAndCombine(in: .up)
+            //                }
+                        }
+                    }
+                    .frame(width: min(maxWidth, maxHeight)*0.8, height: min(maxWidth, maxHeight))
+                    .alert(isPresented: self.$losing, content: {
+                        Alert(title: Text("你输了") , message: Text("重新开始?"), dismissButton:
+                            Alert.Button.cancel({
+                                self.UserData.replay()
+                            }))
+                    })
+            
+            VStack{
+                Spacer()
+                Button(action:{
                     self.UserData.replay()
-                }))
-        })
+                }){
+                    Image(systemName: "arrow.counterclockwise.circle.fill")
+                        .imageScale(.large)
+                        .padding()
+                }
+             }
         }
         
+    }
 }
 
 
